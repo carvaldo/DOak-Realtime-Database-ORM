@@ -11,7 +11,7 @@ abstract class Repository<T>(database: FirebaseDatabase? = null) {
         private val TAG = Repository::class.java.simpleName
     }
 
-    fun save(entity: T, id: String? = null): Task<Void> {
+    open fun save(entity: T, id: String? = null): Task<Void> {
         val fRef = entity!!::class.java.getAnnotation(Entity::class.java)?.value?.let {
             return@let if (id == null) {
                 database.getReference(it).push()
@@ -23,6 +23,15 @@ abstract class Repository<T>(database: FirebaseDatabase? = null) {
             this.addOnFailureListener {
                 Log.e(TAG, "Error on save entity.", it)
             }
+        }
+    }
+
+    open fun save(entities: List<T>, ids: List<String>? = null) { // TODO Criar retorno Task<Void>
+        if (ids != null && ids.isNotEmpty()) {
+            assert(entities.size == ids.size) // TODO Definir Exception e mensagem adequada.
+        }
+        for (i in entities.indices) {
+            save(entities[i], ids?.get(i))
         }
     }
 }
