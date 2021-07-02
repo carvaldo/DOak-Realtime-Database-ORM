@@ -11,13 +11,9 @@ abstract class Repository<T>(database: FirebaseDatabase? = null) {
         private val TAG = Repository::class.java.simpleName
     }
 
-    open fun save(entity: T, id: String? = null): Task<Void> {
+    open fun save(entity: T): Task<Void> {
         val fRef = entity!!::class.java.getAnnotation(Entity::class.java)?.value?.let {
-            return@let if (id == null) {
-                database.getReference(it).push()
-            } else {
-                database.getReference("$it/$id")
-            }
+            database.getReference(it).push()
         } ?: throw Exception("${entity!!::class.java.canonicalName} não foi identificado como uma ${Entity::class.qualifiedName}.")
         return fRef.setValue(entity).apply {
             this.addOnFailureListener {
@@ -26,12 +22,56 @@ abstract class Repository<T>(database: FirebaseDatabase? = null) {
         }
     }
 
-    open fun save(entities: List<T>, ids: List<String>? = null) { // TODO Criar retorno Task<Void>
-        if (ids != null && ids.isNotEmpty()) {
-            assert(entities.size == ids.size) // TODO Definir Exception e mensagem adequada.
+    open fun save(key: String, entity: T): Task<Void> {
+        val fRef = entity!!::class.java.getAnnotation(Entity::class.java)?.value?.let {
+            database.getReference("$it/$key")
+        } ?: throw Exception("${entity!!::class.java.canonicalName} não foi identificado como uma ${Entity::class.qualifiedName}.")
+        return fRef.setValue(entity).apply {
+            this.addOnFailureListener {
+                Log.e(TAG, "Error on save entity.", it)
+            }
         }
-        for (i in entities.indices) {
-            save(entities[i], ids?.get(i))
+    }
+
+    open fun save(entities: List<T>): List<Task<Void>> {
+        val fRef = entities[0]!!::class.java.getAnnotation(Entity::class.java)?.value?.let {
+            database.getReference(it)
+        } ?: throw Exception("${entities[0]!!::class.java.canonicalName} não foi identificado como uma ${Entity::class.qualifiedName}.")
+        return entities.map {
+            fRef.push().setValue(it).apply {
+                this.addOnFailureListener { ex ->
+                    Log.e(TAG, "Error on save entity.", ex)
+                }
+            }
+        }
+    }
+
+    open fun save(key: String, entities: List<T>): List<Task<Void>> {
+        val fRef = entities[0]!!::class.java.getAnnotation(Entity::class.java)?.value?.let {
+            database.getReference("$it/$key")
+        } ?: throw Exception("${entities[0]!!::class.java.canonicalName} não foi identificado como uma ${Entity::class.qualifiedName}.")
+        return entities.map {
+            fRef.push().setValue(it).apply {
+                this.addOnFailureListener { ex ->
+                    Log.e(TAG, "Error on save entity.", ex)
+                }
+            }
+        }
+    }
+
+    open fun save(key: String, subKeys: List<String>, entities: List<Pair<String, T>>): List<Task<Void>> {
+        if (subKeys.size != entities.size) {
+            throw Exception("A quantidade de identificadores difere da quantidade de entidades.") // TODO Qualificar Exception.
+        }
+        val fRef = entities[0]::class.java.getAnnotation(Entity::class.java)?.value?.let {
+            database.getReference("$it/$key")
+        } ?: throw Exception("${entities[0]::class.java.canonicalName} não foi identificado como uma ${Entity::class.qualifiedName}.")
+        return entities.mapIndexed { position, item ->
+            fRef.child(subKeys[position]).setValue(item).apply {
+                this.addOnFailureListener { ex ->
+                    Log.e(TAG, "Error on save entity.", ex)
+                }
+            }
         }
     }
 }
