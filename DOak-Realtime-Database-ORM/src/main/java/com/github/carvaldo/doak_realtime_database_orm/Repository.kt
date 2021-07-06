@@ -4,6 +4,14 @@ import android.util.Log
 import com.google.android.gms.tasks.Task
 import com.google.firebase.database.FirebaseDatabase
 
+/**
+ * Repository
+ *
+ * @param T Class that will be persisted.
+ * @constructor
+ *
+ * @param database FirebaseDatabase
+ */
 abstract class Repository<T>(database: FirebaseDatabase? = null) {
     protected val database: FirebaseDatabase = database ?: requireDatabase()
 
@@ -11,6 +19,13 @@ abstract class Repository<T>(database: FirebaseDatabase? = null) {
         private val TAG = Repository::class.java.simpleName
     }
 
+
+    /**
+     * Persists the entity with a random key.
+     *
+     * @param entity Entity to be persisted.
+     * @return Task<Void>
+     */
     open fun save(entity: T): Task<Void> {
         val fRef = entity!!::class.java.getAnnotation(Entity::class.java)?.value?.let {
             database.getReference(it).push()
@@ -22,6 +37,13 @@ abstract class Repository<T>(database: FirebaseDatabase? = null) {
         }
     }
 
+    /**
+     * Persists the entity with a specific key.
+     *
+     * @param key Key for the entity.
+     * @param entity Entity to be persisted.
+     * @return Task<Void>
+     */
     open fun save(key: String, entity: T): Task<Void> {
         val fRef = entity!!::class.java.getAnnotation(Entity::class.java)?.value?.let {
             database.getReference("$it/$key")
@@ -33,6 +55,12 @@ abstract class Repository<T>(database: FirebaseDatabase? = null) {
         }
     }
 
+    /**
+     * Persist entities with random keys.
+     *
+     * @param entities List of entities that will be persisted.
+     * @return List<Task<Void>>
+     */
     open fun save(entities: List<T>): List<Task<Void>> {
         val fRef = entities[0]!!::class.java.getAnnotation(Entity::class.java)?.value?.let {
             database.getReference(it)
@@ -46,6 +74,13 @@ abstract class Repository<T>(database: FirebaseDatabase? = null) {
         }
     }
 
+    /**
+     * Save an entity grouping under a key.
+     *
+     * @param key Master key for an entity list.
+     * @param entities List of entities that will be persisted.
+     * @return List<Task<Void>>
+     */
     open fun save(key: String, entities: List<T>): List<Task<Void>> {
         val fRef = entities[0]!!::class.java.getAnnotation(Entity::class.java)?.value?.let {
             database.getReference("$it/$key")
@@ -59,6 +94,14 @@ abstract class Repository<T>(database: FirebaseDatabase? = null) {
         }
     }
 
+    /**
+     * Updates an entity grouping under a master key
+     *
+     * @param key Master key for an entity list.
+     * @param subKeys Key list of entities to be updated
+     * @param entities List of entities that will be updated.
+     * @return List<Task<Void>>
+     */
     open fun save(key: String, subKeys: List<String>, entities: List<Pair<String, T>>): List<Task<Void>> {
         if (subKeys.size != entities.size) {
             throw Exception("A quantidade de identificadores difere da quantidade de entidades.") // TODO Qualificar Exception.
